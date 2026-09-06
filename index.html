@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sentinel X | AI Document Verification</title>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/human/dist/human.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#f4f7fb;
+    color:#172033;
+}
+
+header{
+    background:#14213d;
+    color:white;
+    padding:20px;
+    text-align:center;
+}
+
+header h1{
+    font-size:28px;
+}
+
+header p{
+    margin-top:7px;
+    opacity:.85;
+}
+
+.container{
+    max-width:1000px;
+    margin:25px auto;
+    padding:0 15px;
+}
+
+.card{
+    background:white;
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:20px;
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+}
+
+.card h2{
+    margin-bottom:15px;
+    color:#14213d;
+}
+
+input{
+    width:100%;
+    padding:13px;
+    margin:7px 0;
+    border:1px solid #ccd3df;
+    border-radius:8px;
+}
+
+button{
+    border:0;
+    padding:12px 18px;
+    border-radius:8px;
+    background:#14213d;
+    color:white;
+    cursor:pointer;
+    margin:7px 5px 7px 0;
+    font-weight:bold;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+button.success{
+    background:#198754;
+}
+
+button.warning{
+    background:#d97706;
+}
+
+button.danger{
+    background:#dc3545;
+}
+
+.status{
+    background:#eef3f9;
+    padding:14px;
+    border-radius:8px;
+    margin-top:12px;
+    white-space:pre-line;
+}
+
+video,
+canvas{
+    width:100%;
+    max-width:650px;
+    display:block;
+    margin:15px auto;
+    border-radius:10px;
+    background:#111;
+}
+
+.hidden{
+    display:none !important;
+}
+
+.result{
+    text-align:center;
+    padding:25px;
+    border-radius:12px;
+    margin-top:15px;
+}
+
+.genuine{
+    background:#d1e7dd;
+    color:#0f5132;
+}
+
+.fake{
+    background:#f8d7da;
+    color:#842029;
+}
+
+.suspicious{
+    background:#fff3cd;
+    color:#664d03;
+}
+
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;
+    margin-top:15px;
+}
+
+.dash{
+    background:#eef3f9;
+    padding:15px;
+    border-radius:8px;
+    text-align:center;
+}
+
+.small{
+    font-size:13px;
+    color:#667085;
+    margin-top:8px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🛡️ Sentinel X</h1>
+    <p>AI Document & Face Verification System</p>
+</header>
+
+<div class="container">
+
+<!-- LOGIN -->
+<div class="card" id="loginCard">
+    <h2>👮 Officer Login</h2>
+
+    <input
+        type="text"
+        id="officerId"
+        placeholder="Officer ID"
+    >
+
+    <input
+        type="password"
+        id="password"
+        placeholder="Password"
+    >
+
+    <button onclick="login()">Login</button>
+
+    <div class="status" id="loginStatus">
+        Please login to continue.
+    </div>
+</div>
+
+
+<!-- SYSTEM -->
+<div class="card hidden" id="system">
+
+    <h2>Verification System</h2>
+
+    <div class="dashboard">
+
+        <div class="dash">
+            <b>Officer Login</b>
+            <p id="loginDash">WAITING</p>
+        </div>
+
+        <div class="dash">
+            <b>Document</b>
+            <p id="documentDash">WAITING</p>
+        </div>
+
+        <div class="dash">
+            <b>QR</b>
+            <p id="qrDash">WAITING</p>
+        </div>
+
+        <div class="dash">
+            <b>Face</b>
+            <p id="faceDash">WAITING</p>
+        </div>
+
+        <div class="dash">
+            <b>AI Match</b>
+            <p id="matchDash">WAITING</p>
+        </div>
+
+        <div class="dash">
+            <b>Final</b>
+            <p id="finalDash">WAITING</p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- DOCUMENT -->
+<div class="card hidden" id="documentStep">
+
+    <h2>📄 Document Capture</h2>
+
+    <button onclick="startDocumentCamera()">
+        📷 Start Document Camera
+    </button>
+
+    <video
+        id="documentVideo"
+        autoplay
+        playsinline
+        class="hidden">
+    </video>
+
+    <button
+        id="captureDocumentBtn"
+        class="success hidden"
+        onclick="captureDocument()">
+        📸 Capture Document
+    </button>
+
+    <canvas
+        id="documentCanvas"
+        class="hidden">
+    </canvas>
+
+    <div class="status" id="documentStatus">
+        Start the camera to capture the document.
+    </div>
+
+</div>
+
+
+<!-- QR -->
+<div class="card hidden" id="qrStep">
+
+    <h2>🔐 QR Scanner</h2>
+
+    <p class="small">
+        Scan the QR code printed on the document.
+    </p>
+
+    <button
+        id="startQRBtn"
+        onclick="startQRScanner()">
+        📷 Start QR Scanner
+    </button>
+
+    <video
+        id="qrVideo"
+        autoplay
+        playsinline
+        class="hidden">
+    </video>
+
+    <canvas
+        id="qrCanvas"
+        class="hidden">
+    </canvas>
+
+    <div
+        class="status"
+        id="qrStatus">
+        QR scanner is waiting.
+    </div>
+
+    <!-- CONTINUE ANYWAY -->
+    <button
+        id="continueAnywayBtn"
+        class="warning hidden"
+        onclick="continueAnyway()">
+        ➡️ CONTINUE ANYWAY
+    </button>
+
+</div>
+
+
+<!-- FACE -->
+<div class="card hidden" id="faceStep">
+
+    <h2>👤 Face Verification</h2>
+
+    <button onclick="startFaceCamera()">
+        📷 Start Face Camera
+    </button>
+
+    <video
+        id="faceVideo"
+        autoplay
+        playsinline
+        class="hidden">
+    </video>
+
+    <button
+        id="captureFaceBtn"
+        class="success hidden"
+        onclick="captureFace()">
+        📸 Capture Live Face
+    </button>
+
+    <canvas
+        id="faceCanvas"
+        class="hidden">
+    </canvas>
+
+    <div class="status" id="faceStatus">
+        Waiting for face verification.
+    </div>
+
+</div>
+
+
+<!-- AI -->
+<div class="card hidden" id="aiStep">
+
+    <h2>🤖 AI Verification</h2>
+
+    <p>
+        AI will compare the document portrait with the
+        live captured face.
+    </p>
+
+    <button
+        class="success"
+        onclick="startAIVerification()">
+        🤖 Start AI Verification
+    </button>
+
+    <div class="status" id="aiStatus">
+        AI verification is waiting.
+    </div>
+
+</div>
+
+
+<!-- RESULT -->
+<div
+    class="card hidden"
+    id="resultCard">
+
+    <h2>Final Verification Result</h2>
+
+    <div
+        id="resultBox"
+        class="result">
+
+        <h2 id="resultTitle"></h2>
+
+        <p id="resultMessage"></p>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<script>
+
+let documentStream = null;
+let qrStream = null;
+let faceStream = null;
+
+let qrScanning = false;
+
+let documentCaptured = false;
+let qrDetected = false;
+let qrVerified = false;
+let faceCaptured = false;
+
+let qrData = "";
+
+let humanAI = null;
+
+
+/* =========================
+   LOGIN
+========================= */
+
+function login(){
+
+    const officer =
+        document.getElementById("officerId").value.trim();
+
+    const password =
+        document.getElementById("password").value.trim();
+
+    if(!officer || !password){
+
+        document.getElementById("loginStatus").innerText =
+            "❌ Please enter Officer ID and Password.";
+
+        return;
+    }
+
+    document.getElementById("loginStatus").innerText =
+        "✅ Officer Login Successful.";
+
+    document.getElementById("loginCard")
+        .classList.add("hidden");
+
+    document.getElementById("system")
+        .classList.remove("hidden");
+
+    document.getElementById("documentStep")
+        .classList.remove("hidden");
+
+    document.getElementById("loginDash").innerText =
+        "LOGGED IN";
+}
+
+
+/* =========================
+   DOCUMENT CAMERA
+========================= */
+
+async function startDocumentCamera(){
+
+    try{
+
+        documentStream =
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:{
+                        ideal:"environment"
+                    }
+                },
+                audio:false
+            });
+
+        const video =
+            document.getElementById("documentVideo");
+
+        video.srcObject = documentStream;
+
+        video.classList.remove("hidden");
+
+        document.getElementById("captureDocumentBtn")
+            .classList.remove("hidden");
+
+        document.getElementById("documentStatus")
+            .innerText =
+            "📷 Document camera active.\nPlace the document inside the frame.";
+
+    }
+    catch(error){
+
+        document.getElementById("documentStatus")
+            .innerText =
+            "❌ Camera access failed.\nPlease allow camera permission.";
+
+    }
+}
+
+
+function captureDocument(){
+
+    const video =
+        document.getElementById("documentVideo");
+
+    const canvas =
+        document.getElementById("documentCanvas");
+
+    canvas.width = video.videoWidth || 800;
+    canvas.height = video.videoHeight || 600;
+
+    const ctx = canvas.getContext("2d");
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    canvas.classList.remove("hidden");
+
+    documentCaptured = true;
+
+    document.getElementById("documentDash")
+        .innerText = "CAPTURED";
+
+    document.getElementById("documentStatus")
+        .innerText =
+        "✅ Document captured successfully.";
+
+    stopDocumentCamera();
+
+    document.getElementById("qrStep")
+        .classList.remove("hidden");
+
+    setTimeout(()=>{
+
+        document.getElementById("qrStep")
+            .scrollIntoView({
+                behavior:"smooth"
+            });
+
+    },300);
+}
+
+
+function stopDocumentCamera(){
+
+    if(documentStream){
+
+        documentStream
+            .getTracks()
+            .forEach(track => track.stop());
+
+        documentStream = null;
+    }
+}
+
+
+/* =========================
+   QR SCANNER
+========================= */
+
+async function startQRScanner(){
+
+    try{
+
+        qrStream =
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:{
+                        ideal:"environment"
+                    }
+                },
+                audio:false
+            });
+
+        const video =
+            document.getElementById("qrVideo");
+
+        video.srcObject = qrStream;
+
+        video.classList.remove("hidden");
+
+        qrScanning = true;
+
+        qrDetected = false;
+
+        document.getElementById("continueAnywayBtn")
+            .classList.add("hidden");
+
+        document.getElementById("qrStatus")
+            .innerText =
+            "📷 QR Scanner active.\nShow the document QR code to the camera.";
+
+        requestAnimationFrame(scanQRFrame);
+
+    }
+    catch(error){
+
+        document.getElementById("qrStatus")
+            .innerText =
+            "❌ QR camera could not start.\n\nYou can continue to Face Verification.";
+
+        document.getElementById("continueAnywayBtn")
+            .classList.remove("hidden");
+
+    }
+}
+
+
+function scanQRFrame(){
+
+    if(!qrScanning){
+        return;
+    }
+
+    const video =
+        document.getElementById("qrVideo");
+
+    if(
+        video.readyState !==
+        video.HAVE_ENOUGH_DATA
+    ){
+
+        requestAnimationFrame(scanQRFrame);
+        return;
+    }
+
+    const canvas =
+        document.getElementById("qrCanvas");
+
+    const width = video.videoWidth;
+    const height = video.videoHeight;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx =
+        canvas.getContext("2d",{
+            willReadFrequently:true
+        });
+
+    /*
+       IMPORTANT:
+       Scan the ENTIRE camera frame.
+       This makes laptop QR detection easier.
+    */
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        width,
+        height
+    );
+
+    const imageData =
+        ctx.getImageData(
+            0,
+            0,
+            width,
+            height
+        );
+
+    const code =
+        jsQR(
+            imageData.data,
+            imageData.width,
+            imageData.height,
+            {
+                inversionAttempts:"attemptBoth"
+            }
+        );
+
+    if(code){
+
+        qrData = code.data.trim();
+
+        qrDetected = true;
+        qrScanning = false;
+
+        stopQRCamera();
+
+        document.getElementById("qrDash")
+            .innerText = "DETECTED";
+
+        document.getElementById("qrStatus")
+            .innerText =
+            "✅ QR DETECTED\n\n" +
+            "QR code successfully detected.\n" +
+            "Camera automatically stopped.\n\n" +
+            "➡️ Proceeding to Face Verification...";
+
+        /*
+           QR DETECTED:
+           Go directly to Face Verification.
+        */
+
+        setTimeout(
+            goToFaceVerification,
+            1000
+        );
+
+        return;
+    }
+
+    requestAnimationFrame(scanQRFrame);
+}
+
+
+/* =========================
+   QR CAMERA STOP
+========================= */
+
+function stopQRCamera(){
+
+    if(qrStream){
+
+        qrStream
+            .getTracks()
+            .forEach(track => track.stop());
+
+        qrStream = null;
+    }
+}
+
+
+/* =========================
+   CONTINUE ANYWAY
+========================= */
+
+function continueAnyway(){
+
+    qrScanning = false;
+
+    stopQRCamera();
+
+    qrDetected = false;
+    qrVerified = false;
+
+    document.getElementById("qrDash")
+        .innerText = "NOT DETECTED";
+
+    document.getElementById("qrStatus")
+        .innerText =
+        "⚠️ QR NOT DETECTED\n\n" +
+        "QR verification was not completed.\n" +
+        "Continuing to Face Verification.";
+
+    /*
+       IMPORTANT:
+       Do NOT show QR VERIFIED.
+       We are only continuing the demo.
+    */
+
+    setTimeout(
+        goToFaceVerification,
+        500
+    );
+}
+
+
+/* =========================
+   FACE VERIFICATION
+========================= */
+
+function goToFaceVerification(){
+
+    document.getElementById("faceStep")
+        .classList.remove("hidden");
+
+    document.getElementById("faceStep")
+        .scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+        });
+
+}
+
+
+async function startFaceCamera(){
+
+    try{
+
+        faceStream =
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:{
+                        ideal:"user"
+                    }
+                },
+                audio:false
+            });
+
+        const video =
+            document.getElementById("faceVideo");
+
+        video.srcObject = faceStream;
+
+        video.classList.remove("hidden");
+
+        document.getElementById("captureFaceBtn")
+            .classList.remove("hidden");
+
+        document.getElementById("faceStatus")
+            .innerText =
+            "📷 Face camera active.\nLook directly at the camera.";
+
+    }
+    catch(error){
+
+        document.getElementById("faceStatus")
+            .innerText =
+            "❌ Front camera access failed.";
+
+    }
+}
+
+
+function captureFace(){
+
+    const video =
+        document.getElementById("faceVideo");
+
+    const canvas =
+        document.getElementById("faceCanvas");
+
+    canvas.width =
+        video.videoWidth || 640;
+
+    canvas.height =
+        video.videoHeight || 480;
+
+    const ctx =
+        canvas.getContext("2d");
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    canvas.classList.remove("hidden");
+
+    faceCaptured = true;
+
+    document.getElementById("faceDash")
+        .innerText = "CAPTURED";
+
+    document.getElementById("faceStatus")
+        .innerText =
+        "✅ Live face captured successfully.";
+
+    stopFaceCamera();
+
+    document.getElementById("aiStep")
+        .classList.remove("hidden");
+
+    setTimeout(()=>{
+
+        document.getElementById("aiStep")
+            .scrollIntoView({
+                behavior:"smooth"
+            });
+
+    },300);
+}
+
+
+function stopFaceCamera(){
+
+    if(faceStream){
+
+        faceStream
+            .getTracks()
+            .forEach(track => track.stop());
+
+        faceStream = null;
+    }
+}
+
+
+/* =========================
+   HUMAN AI
+========================= */
+
+async function loadHumanAI(){
+
+    if(humanAI){
+        return humanAI;
+    }
+
+    humanAI =
+        new Human.Human({
+
+            baseModelPath:
+                "https://vladmandic.github.io/human-models/models/",
+
+            face:{
+                enabled:true,
+
+                detector:{
+                    rotation:true,
+                    return:true
+                },
+
+                mesh:{
+                    enabled:true
+                },
+
+                description:{
+                    enabled:true
+                }
+            }
+
+        });
+
+    await humanAI.load();
+    await humanAI.warmup();
+
+    return humanAI;
+}
+
+
+/* =========================
+   IMAGE QUALITY
+========================= */
+
+function imageQuality(canvas){
+
+    const ctx =
+        canvas.getContext("2d");
+
+    const imageData =
+        ctx.getImageData(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+    const data =
+        imageData.data;
+
+    let sum = 0;
+    let sum2 = 0;
+    let count = 0;
+
+    for(
+        let i=0;
+        i<data.length;
+        i+=16
+    ){
+
+        const gray =
+            0.299 * data[i] +
+            0.587 * data[i+1] +
+            0.114 * data[i+2];
+
+        sum += gray;
+        sum2 += gray * gray;
+
+        count++;
+    }
+
+    const average =
+        sum / count;
+
+    const variance =
+        (sum2 / count) -
+        (average * average);
+
+    return {
+        average,
+        variance,
+        clear:
+            average >= 4 &&
+            variance >= 15
+    };
+}
+
+
+/* =========================
+   AI VERIFICATION
+========================= */
+
+async function startAIVerification(){
+
+    const aiStatus =
+        document.getElementById("aiStatus");
+
+    try{
+
+        if(!documentCaptured){
+
+            showSuspicious(
+                "Document capture is incomplete."
+            );
+
+            return;
+        }
+
+        if(!faceCaptured){
+
+            showSuspicious(
+                "Live face capture is incomplete."
+            );
+
+            return;
+        }
+
+        aiStatus.innerText =
+            "🤖 Loading AI face verification model...";
+
+        const ai =
+            await loadHumanAI();
+
+        aiStatus.innerText =
+            "🤖 Detecting face in document...";
+
+        const documentResult =
+            await ai.detect(
+                document.getElementById(
+                    "documentCanvas"
+                )
+            );
+
+        if(
+            !documentResult.face ||
+            documentResult.face.length === 0
+        ){
+
+            showSuspicious(
+                "No clear face detected in the document."
+            );
+
+            return;
+        }
+
+        if(documentResult.face.length > 1){
+
+            showSuspicious(
+                "Multiple faces detected in the document."
+            );
+
+            return;
+        }
+
+        const documentFace =
+            documentResult.face[0];
+
+        if(!documentFace.embedding){
+
+            showSuspicious(
+                "Document face embedding could not be generated."
+            );
+
+            return;
+        }
+
+
+        aiStatus.innerText =
+            "🤖 Detecting live face...";
+
+
+        const liveResult =
+            await ai.detect(
+                document.getElementById(
+                    "faceCanvas"
+                )
+            );
+
+
+        if(
+            !liveResult.face ||
+            liveResult.face.length === 0
+        ){
+
+            showSuspicious(
+                "No clear live face detected."
+            );
+
+            return;
+        }
+
+        if(liveResult.face.length > 1){
+
+            showSuspicious(
+                "Multiple live faces detected."
+            );
+
+            return;
+        }
+
+
+        const liveFace =
+            liveResult.face[0];
+
+
+        if(!liveFace.embedding){
+
+            showSuspicious(
+                "Live face embedding could not be generated."
+            );
+
+            return;
+        }
+
+
+        aiStatus.innerText =
+            "🤖 Comparing document face with live face...";
+
+
+        const similarity =
+            ai.match.similarity(
+                documentFace.embedding,
+                liveFace.embedding
+            );
+
+
+        const score =
+            Math.round(
+                similarity * 100
+            );
+
+
+        document.getElementById("matchDash")
+            .innerText =
+            score + "%";
+
+
+        /*
+           Prototype threshold.
+        */
+
+        if(similarity >= 0.50){
+
+            showGenuine(score);
+
+        }
+        else{
+
+            showFake(score);
+
+        }
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        showSuspicious(
+            "AI verification could not be completed."
+        );
+
+    }
+}
+
+
+/* =========================
+   RESULTS
+========================= */
+
+function showGenuine(score){
+
+    document.getElementById("resultCard")
+        .classList.remove("hidden");
+
+    const box =
+        document.getElementById("resultBox");
+
+    box.className =
+        "result genuine";
+
+    document.getElementById("resultTitle")
+        .innerText =
+        "✅ GENUINE";
+
+    document.getElementById("resultMessage")
+        .innerText =
+        "AI face similarity: " +
+        score +
+        "%.\n\n" +
+        "The document portrait and live face matched.";
+
+    document.getElementById("finalDash")
+        .innerText =
+        "GENUINE";
+
+    document.getElementById("aiStatus")
+        .innerText =
+        "✅ AI Verification Completed.";
+
+    document.getElementById("resultCard")
+        .scrollIntoView({
+            behavior:"smooth"
+        });
+}
+
+
+function showFake(score){
+
+    document.getElementById("resultCard")
+        .classList.remove("hidden");
+
+    const box =
+        document.getElementById("resultBox");
+
+    box.className =
+        "result fake";
+
+    document.getElementById("resultTitle")
+        .innerText =
+        "❌ FAKE";
+
+    document.getElementById("resultMessage")
+        .innerText =
+        "AI face similarity: " +
+        score +
+        "%.\n\n" +
+        "The document portrait and live face did not match.";
+
+    document.getElementById("finalDash")
+        .innerText =
+        "FAKE";
+
+    document.getElementById("aiStatus")
+        .innerText =
+        "❌ AI Verification Completed.";
+
+    document.getElementById("resultCard")
+        .scrollIntoView({
+            behavior:"smooth"
+        });
+}
+
+
+function showSuspicious(message){
+
+    document.getElementById("resultCard")
+        .classList.remove("hidden");
+
+    const box =
+        document.getElementById("resultBox");
+
+    box.className =
+        "result suspicious";
+
+    document.getElementById("resultTitle")
+        .innerText =
+        "⚠️ SUSPICIOUS";
+
+    document.getElementById("resultMessage")
+        .innerText =
+        message;
+
+    document.getElementById("finalDash")
+        .innerText =
+        "SUSPICIOUS";
+
+    document.getElementById("aiStatus")
+        .innerText =
+        "⚠️ AI verification requires review.";
+
+    document.getElementById("resultCard")
+        .scrollIntoView({
+            behavior:"smooth"
+        });
+}
+
+</script>
+
+</body>
+</html>
